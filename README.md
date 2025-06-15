@@ -1,17 +1,17 @@
-# MindsDB Knowledge Base CLI with Google Gemini 2.5 Flash
+# MindsDB Knowledge Base CLI with Google Gemini 2.5 Flash, Jobs, Metadata & AI Tables
 
-A command-line tool to create, populate, index, and query a MindsDB Knowledge Base using the Google Gemini 2.5 Flash model for semantic embeddings and reranking.
+A powerful command-line tool to create, populate, index, and query a MindsDB Knowledge Base using Google Gemini 2.5 Flash embeddings and reranking. Supports asynchronous JOBs for ingestion and indexing, advanced metadata handling, and MindsDB AI Tables for summarization, classification, and generation tasks.
 
 ---
 
 ## Features
 
-- Create a MindsDB Knowledge Base with Gemini 2.5 Flash embedding and reranking models  
-- Ingest CSV data into the knowledge base  
-- Create semantic search index on the knowledge base  
-- Perform semantic search queries with relevance filtering  
-- Supports MindsDB projects for organizing knowledge bases  
-- Robust error handling and logging  
+- Create MindsDB Knowledge Base with Gemini 2.5 Flash embedding and reranking models  
+- Asynchronous data ingestion and index creation using MindsDB JOBs  
+- Semantic search with metadata columns and SQL window functions (e.g., `LAST_VALUE`)  
+- Create and query MindsDB AI Tables for tasks like summarization, classification, and generation  
+- Support for MindsDB projects to organize knowledge bases  
+- Robust logging and error handling  
 
 ---
 
@@ -19,15 +19,16 @@ A command-line tool to create, populate, index, and query a MindsDB Knowledge Ba
 
 - Python 3.8+  
 - MindsDB Python SDK (`mindsdb-sdk`)  
+- Pandas (`pandas`)  
 - MindsDB Cloud account with API key ([Get your MindsDB API key](https://mdb.ai/))  
 - Google Gemini API key for Gemini 2.5 Flash model  
-- CSV data file to ingest  
+- CSV data file for ingestion  
 
 ---
 
 ## Installation
 
-1. Clone this repository or copy the CLI script `kb_cli_gemini.py`.  
+1. Clone this repository or copy the CLI script `kb_cli_advanced.py`.  
 2. Install dependencies:
 
 ```bash
@@ -38,10 +39,18 @@ pip install mindsdb-sdk pandas
 
 ## Usage
 
-### 1. Ingest Data into Knowledge Base
+### 1. Create Gemini Engine (Automatically done when ingesting data if Gemini API key provided)
 
 ```bash
-python kb_cli_gemini.py \
+python kb_cli_advanced.py --api_key YOUR_MINDSDB_API_KEY --gemini_api_key YOUR_GOOGLE_GEMINI_API_KEY
+```
+
+---
+
+### 2. Ingest Data into Knowledge Base (Async with JOB)
+
+```bash
+python kb_cli_advanced.py \
   --api_key YOUR_MINDSDB_API_KEY \
   --gemini_api_key YOUR_GOOGLE_GEMINI_API_KEY \
   --kb_name your_kb_name \
@@ -50,15 +59,15 @@ python kb_cli_gemini.py \
 
 - Creates the Gemini ML engine (if not exists)  
 - Creates the knowledge base with Gemini embedding and reranking models  
-- Inserts data from the CSV file  
-- Creates a semantic index  
+- Inserts data asynchronously using MindsDB JOBs  
+- Creates semantic index asynchronously  
 
 ---
 
-### 2. Perform Semantic Search Queries
+### 3. Perform Semantic Search Queries with Metadata Handling
 
 ```bash
-python kb_cli_gemini.py \
+python kb_cli_advanced.py \
   --api_key YOUR_MINDSDB_API_KEY \
   --kb_name your_kb_name \
   --query "Your semantic search query here" \
@@ -66,16 +75,41 @@ python kb_cli_gemini.py \
   --relevance_threshold 0.6
 ```
 
-- Returns up to 5 most relevant results matching the query  
-- Filters results by a minimum relevance threshold  
+- Returns relevant results filtered by relevance score  
+- Includes example metadata handling with SQL window functions (e.g., latest update timestamp)  
 
 ---
 
-### 3. Optional Arguments
+### 4. Create an AI Table (Summarization, Classification, Generation)
 
-- `--project`: Specify MindsDB project name to organize knowledge bases  
-- `--limit`: Maximum number of results to return (default: 10)  
-- `--relevance_threshold`: Minimum relevance score for filtering results (default: 0.5)  
+```bash
+python kb_cli_advanced.py \
+  --api_key YOUR_MINDSDB_API_KEY \
+  --project your_project_name \
+  --create_ai_table \
+  --ai_table_name your_ai_table \
+  --source_table your_kb_name \
+  --task_type summarization \
+  --input_columns content \
+  --output_column summary
+```
+
+- Creates an AI Table based on your knowledge base or other source table  
+- Supports tasks: `summarization`, `classification`, `generation`  
+
+---
+
+### 5. Query an AI Table
+
+```bash
+python kb_cli_advanced.py \
+  --api_key YOUR_MINDSDB_API_KEY \
+  --query_ai_table \
+  --ai_table_name your_ai_table \
+  --limit 5
+```
+
+- Query AI Table results with optional filtering  
 
 ---
 
@@ -83,39 +117,40 @@ python kb_cli_gemini.py \
 
 Your CSV file should contain:
 
-- A unique identifier column (default `"id"`, or first column if `"id"` not present)  
-- One or more content columns (default `"content"`, or all columns except ID and metadata)  
-- Optional metadata columns  
+- Unique identifier column (default `"id"` or first column if `"id"` missing)  
+- Content columns (default `"content"` or all except ID and metadata)  
+- Optional metadata columns (e.g., timestamps, categories)  
 
 Example:
 
 ```csv
-id,content,category
-1,"How to reset password?","support"
-2,"Pricing plans and billing info","sales"
-3,"Troubleshooting login issues","support"
+id,content,category,updated_at
+1,"How to reset password?","support","2025-06-10"
+2,"Pricing plans and billing info","sales","2025-06-12"
+3,"Troubleshooting login issues","support","2025-06-11"
 ```
 
 ---
 
 ## Environment Variables (Recommended)
 
-For security, consider storing API keys in environment variables instead of passing via CLI:
+Store API keys securely:
 
 ```bash
 export MINDSDB_API_KEY="your_mindsdb_api_key"
 export GOOGLE_GEMINI_API_KEY="your_google_gemini_api_key"
 ```
 
-Modify the script to read these variables with `os.getenv()`.
+Modify the script to use `os.getenv()` for keys if preferred.
 
 ---
 
 ## Troubleshooting
 
-- **"Already exists" errors:** The app logs warnings if the engine or knowledge base already exists and continues.  
-- **API key issues:** Ensure your MindsDB and Google Gemini API keys are valid and have proper permissions.  
-- **CSV loading errors:** Verify the CSV format and encoding.
+- **"Already exists" warnings:** Safe to ignore; the app continues if engine or KB exists.  
+- **API key issues:** Verify API keys and permissions.  
+- **CSV loading errors:** Check CSV format, encoding, and column names.  
+- **Job failures:** Check MindsDB dashboard or logs for detailed job status.
 
 ---
 
